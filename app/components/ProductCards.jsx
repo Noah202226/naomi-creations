@@ -8,14 +8,14 @@ const ProductCard = ({ product }) => {
         <figure>
           <Image
             src={product.image}
-            alt={product.title}
-            width={300}
-            height={200}
-            className="w-full h-48 object-cover"
+            alt={product.name}
+            width={500} // Adjust width as needed
+            height={500} // Adjust height as needed
+            layout="responsive" // Ensures proper image scaling
           />
         </figure>
         <div className="card-body">
-          <h2 className="card-title text-lg font-semibold">{product.title}</h2>
+          <h2 className="card-title text-lg font-semibold">{product.name}</h2>
           <p className="text-gray-500">{product.price}</p>
         </div>
       </div>

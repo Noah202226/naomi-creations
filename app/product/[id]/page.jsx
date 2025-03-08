@@ -1,66 +1,45 @@
-import Image from "next/image";
-import Link from "next/link";
+"use client";
+import { useProducts } from "../../hooks/useProducts";
+import { useParams, useRouter } from "next/navigation";
 
-const products = [
-  {
-    id: 1,
-    title: "Digital Product Course",
-    price: "₱2,399",
-    image: "/products/digital-course.png",
-  },
-  {
-    id: 2,
-    title: "Funnel Kit",
-    price: "₱1,999",
-    image: "/products/funnel-kit.png",
-  },
-  {
-    id: 3,
-    title: "Etsy & Pinterest Guide",
-    price: "₱299",
-    image: "/products/etsy-guide.png",
-  },
-];
+export default function ProductDetails() {
+  const { data: products, isLoading } = useProducts();
+  const { id } = useParams();
+  const router = useRouter();
 
-export default function ProductDetails({ params }) {
-  const product = products.find((p) => p.id.toString() === params.id);
+  if (isLoading) return <p>Loading...</p>;
 
-  if (!product) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-3xl font-bold">Product Not Found</h1>
-        <Link href="/" className="btn btn-primary mt-4">
-          Go Back
-        </Link>
-      </div>
-    );
-  }
+  const product = products?.find((p) => p.id === id);
+  if (!product) return <p>Product not found.</p>;
+
+  const handleBuyNow = () => {
+    router.push(`/product/${id}/buy`);
+  };
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
-        <Image
-          src={product.image}
-          alt={product.title}
-          width={600}
-          height={400}
-          className="w-full h-64 object-cover"
-        />
-        <div className="p-6">
-          <h1 className="text-2xl font-bold">{product.title}</h1>
-          <p className="text-gray-500 text-lg my-3">{product.price}</p>
-          <div className="mt-5 flex gap-4">
-            <Link
-              href={`/product/${product.id}/buy`}
-              className="btn btn-success"
-            >
-              Buy Now
-            </Link>
-            <Link href="/" className="btn btn-secondary">
-              Back
-            </Link>
-          </div>
-        </div>
+    <div className="p-4 max-w-2xl mx-auto">
+      <h1 className="text-3xl font-bold">{product.name}</h1>
+      <p className="text-xl text-gray-600">{product.price}</p>
+      <img
+        src={product.image}
+        alt={product.title}
+        className="w-64 h-64 object-cover rounded-lg mb-4"
+      />
+
+      <div className="flex gap-4">
+        <button
+          onClick={handleBuyNow}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+        >
+          Buy Now
+        </button>
+
+        <button
+          onClick={() => router.push("/")}
+          className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
+        >
+          Back to Home
+        </button>
       </div>
     </div>
   );

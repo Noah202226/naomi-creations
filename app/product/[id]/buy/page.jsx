@@ -1,167 +1,175 @@
 "use client";
-import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
+import { useEffect, useState } from "react";
+import { db, getDoc, doc } from "../../../firebaseConfig";
 
-const products = [
-  { id: 1, title: "Digital Product Course", price: "₱2,399" },
-  { id: 2, title: "Funnel Kit", price: "₱1,999" },
-  { id: 3, title: "Etsy & Pinterest Guide", price: "₱299" },
-];
+export default function CheckoutPage() {
+  const { id } = useParams();
+  const router = useRouter();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [showToast, setShowToast] = useState(false);
 
-export default function BuyNow() {
-  const params = useParams();
-  const router = useRouter(); // ✅ Used for redirection
-  const productId = params.id;
-  const product = products.find((p) => p.id.toString() === productId);
+  // Fetch product details from Firestore
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const docRef = doc(db, "products", id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setProduct(docSnap.data());
+        } else {
+          console.log("Product not found");
+        }
+      } catch (error) {
+        console.error("Error fetching product:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [id]);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    image: null,
-    preview: null,
-    showToast: false, // ✅ Toast visibility state
-  });
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleImageChange = (event) => {
-    const file = event.target.files[0];
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
     if (file) {
-      setFormData({
-        ...formData,
-        image: file,
-        preview: URL.createObjectURL(file),
-      });
+      setImage(file);
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ✅ Show toast
-    setFormData({ ...formData, showToast: true });
+    if (!image) {
+      alert("Please upload a payment proof image.");
+      return;
+    }
 
-    // ✅ Redirect to homepage after 3 seconds
-    setTimeout(() => {
-      router.push("/");
-    }, 3000);
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("email", email);
+    formData.append("paymentProof", image);
+
+    const response = await fetch("/api/upload-proof", {
+      method: "POST",
+      body: formData,
+    });
+
+    const formData2 = new FormData();
+    formData.append("name", name);
+    formData.append("email", email);
+    formData.append("product", product.name);
+    formData.append("paymentProof", image); // Attach the file
+
+    const response2 = await fetch("/api/send-mail", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData2), // No need for Content-Type header (handled automatically)
+    });
+
+    if (response.ok && response2.ok) {
+      setShowToast(true);
+      setTimeout(() => {
+        setShowToast(false);
+        router.push("/");
+      }, 3000);
+    } else {
+      alert("Failed to submit payment proof.");
+    }
   };
 
-  if (!product) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-3xl font-bold">Product Not Found</h1>
-        <Link href="/" className="btn btn-primary mt-4">
-          Go Back
-        </Link>
-      </div>
-    );
-  }
+  if (loading) return <p className="text-center mt-10">Loading...</p>;
+  if (!product) return <p className="text-center mt-10">Product not found.</p>;
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="max-w-lg mx-auto bg-white shadow-md p-6 rounded-lg">
-        <h1 className="text-2xl font-bold mb-4">Checkout</h1>
-        <p className="text-lg">{product.title}</p>
-        <p className="text-gray-500 mb-4">{product.price}</p>
-
-        {/* Payment Section */}
-        <div className="bg-gray-100 p-4 rounded-lg">
-          <h2 className="text-xl font-bold mb-2">Pay via GCash</h2>
-          <p className="text-gray-600">
-            Scan the QR code below to send payment.
-          </p>
-          <div className="flex justify-center my-4">
-            <Image
-              src="/products/gcash payment.jpg" // Make sure the QR is in `public/`
-              alt="GCash QR Code"
-              width={250}
-              height={250}
-              className="rounded-lg border border-gray-300"
-            />
-          </div>
-          <p className="text-gray-600 text-center">
-            After payment, upload the receipt.
-          </p>
+    <div className="container mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Left Section - Product Details */}
+        <div className="bg-white p-6 rounded-lg shadow-lg">
+          <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
+          <p className="text-lg text-gray-700 mb-2">Price: {product.price}</p>
+          <img
+            src={product.image}
+            alt={product.name}
+            className="w-full h-64 object-contain rounded-lg"
+          />
         </div>
 
-        {/* Checkout Form */}
-        <form className="flex flex-col gap-4 mt-4" onSubmit={handleSubmit}>
-          {/* Name Input */}
-          <label className="block text-gray-700 font-semibold">Name:</label>
+        {/* Right Section - Payment Form */}
+        <div className="bg-gray-100 p-6 rounded-lg shadow-lg">
+          <h2 className="text-2xl font-bold mb-4">Checkout Details</h2>
+
           <input
             type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="Enter your full name"
-            className="input input-bordered w-full"
+            placeholder="Full Name"
+            className="input input-bordered w-full mb-4"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             required
           />
 
-          {/* Email Input */}
-          <label className="block text-gray-700 font-semibold">Email:</label>
           <input
             type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Enter your email"
-            className="input input-bordered w-full"
+            placeholder="Email"
+            className="input input-bordered w-full mb-4"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
 
-          {/* Image Upload */}
-          <label className="block text-gray-700 font-semibold">
-            Upload Payment Receipt:
-          </label>
+          <h2 className="text-xl font-bold mt-4 mb-2">Scan to Pay via GCash</h2>
+          <div className="flex justify-center">
+            <img
+              src="/products/gcash payment.jpg"
+              alt="GCash QR Code"
+              className="w-52 h-80 my-5 object-cover rounded-lg"
+            />
+          </div>
+
+          {/* File Input for Payment Proof */}
+          <label className="block mb-2 font-bold">Upload Payment Proof</label>
           <input
             type="file"
             accept="image/*"
-            className="file-input file-input-bordered w-full"
+            className="file-input file-input-bordered w-full mb-4"
             onChange={handleImageChange}
-            required
           />
 
           {/* Image Preview */}
-          {formData.preview && (
-            <div className="mt-4">
+          {imagePreview && (
+            <div className="mb-4">
               <p className="text-gray-600">Preview:</p>
               <img
-                src={formData.preview}
-                alt="Uploaded Preview"
-                className="w-full h-48 object-cover rounded-lg border border-gray-300"
+                src={imagePreview}
+                alt="Payment Proof"
+                className="w-40 h-auto rounded-lg"
               />
             </div>
           )}
 
-          <button type="submit" className="btn btn-success w-full">
-            Complete Purchase
-          </button>
-        </form>
-
-        <div className="mt-4">
-          <Link
-            href={`/product/${product.id}`}
-            className="text-blue-500 hover:underline"
+          <button
+            onClick={handleSubmit}
+            className="btn btn-primary w-full mt-4"
           >
-            &larr; Back to Product
-          </Link>
+            Confirm Purchase
+          </button>
+
+          {showToast && (
+            <div className="toast toast-bottom toast-end">
+              <div className="alert alert-success">
+                <span>Payment successful! Redirecting...</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* ✅ DaisyUI Toast Message */}
-      {formData.showToast && (
-        <div className="toast toast-top toast-end">
-          <div className="alert alert-success">
-            <span>Payment successful! Redirecting to homepage...</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
