@@ -7,7 +7,7 @@ const ProductCard = ({ product }) => {
       <div className="card bg-base-100 shadow-xl shadow-pink-500 cursor-pointer hover:shadow-2xl hover:border-1 transition-all">
         <figure>
           <Image
-            src={product.image}
+            src={product?.images[0]}
             alt={product.name}
             width={500} // Adjust width as needed
             height={500} // Adjust height as needed

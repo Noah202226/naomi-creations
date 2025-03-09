@@ -1,6 +1,7 @@
 "use client";
 import { useProducts } from "../../hooks/useProducts";
 import { useParams, useRouter } from "next/navigation";
+import CarouselProductsImage from "./components/CarouselProductsImage";
 
 export default function ProductDetails() {
   const { data: products, isLoading } = useProducts();
@@ -10,22 +11,21 @@ export default function ProductDetails() {
   if (isLoading) return <p>Loading...</p>;
 
   const product = products?.find((p) => p.id === id);
+  console.log(product);
   if (!product) return <p>Product not found.</p>;
 
   const handleBuyNow = () => {
     router.push(`/product/${id}/buy`);
   };
 
+  const images = product.images ? Object.values(product.images) : [];
+
   return (
     <div className="p-4 max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold">{product.name}</h1>
       <p className="text-xl text-gray-600">{product.price}</p>
-      <img
-        src={product.image}
-        alt={product.title}
-        className="w-64 h-64 object-cover rounded-lg mb-4"
-      />
 
+      <CarouselProductsImage images={images} />
       <div className="flex gap-4">
         <button
           onClick={handleBuyNow}

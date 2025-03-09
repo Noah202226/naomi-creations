@@ -11,7 +11,7 @@ export default function CheckoutPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [gcashRefNumber, setGcashRefNumber] = useState("");
   const [showToast, setShowToast] = useState(false);
 
   // Fetch product details from Firestore
@@ -34,54 +34,31 @@ export default function CheckoutPage() {
     fetchProduct();
   }, [id]);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImage(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!image) {
-      alert("Please upload a payment proof image.");
-      return;
-    }
+    const formData2 = {
+      name,
+      email,
+      product: product.name,
+      gcashRefNumber,
+    };
 
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("email", email);
-    formData.append("paymentProof", image);
-
-    const response = await fetch("/api/upload-proof", {
+    const response2 = await fetch("/api/send-email", {
       method: "POST",
-      body: formData,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData2),
     });
 
-    const formData2 = new FormData();
-    formData.append("name", name);
-    formData.append("email", email);
-    formData.append("product", product.name);
-    formData.append("paymentProof", image); // Attach the file
-
-    const response2 = await fetch("/api/send-mail", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData2), // No need for Content-Type header (handled automatically)
-    });
-
-    if (response.ok && response2.ok) {
+    if (response2.ok) {
       setShowToast(true);
       setTimeout(() => {
         setShowToast(false);
         router.push("/");
-      }, 3000);
+      }, 5000);
     } else {
       alert("Failed to submit payment proof.");
+      console.log(response2.statusText);
     }
   };
 
@@ -133,26 +110,16 @@ export default function CheckoutPage() {
             />
           </div>
 
-          {/* File Input for Payment Proof */}
-          <label className="block mb-2 font-bold">Upload Payment Proof</label>
+          {/* GCash Reference Number Input */}
+          <label className="block mb-2 font-bold">GCash Reference Number</label>
           <input
-            type="file"
-            accept="image/*"
-            className="file-input file-input-bordered w-full mb-4"
-            onChange={handleImageChange}
+            type="text"
+            placeholder="Enter GCash Ref No."
+            className="input input-bordered w-full mb-4"
+            value={gcashRefNumber}
+            onChange={(e) => setGcashRefNumber(e.target.value)}
+            required
           />
-
-          {/* Image Preview */}
-          {imagePreview && (
-            <div className="mb-4">
-              <p className="text-gray-600">Preview:</p>
-              <img
-                src={imagePreview}
-                alt="Payment Proof"
-                className="w-40 h-auto rounded-lg"
-              />
-            </div>
-          )}
 
           <button
             onClick={handleSubmit}

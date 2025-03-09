@@ -24,6 +24,8 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [images, setImages] = useState(["", "", "", "", ""]);
+
   // Form states for adding/updating products
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -52,6 +54,13 @@ export default function Dashboard() {
     };
   }, []);
 
+  // Handle Image Change Selection
+  const handleImageChange = (index, value) => {
+    const updatedImages = [...images];
+    updatedImages[index] = value;
+    setImages(updatedImages);
+  };
+
   // Handle Login
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -71,22 +80,25 @@ export default function Dashboard() {
   // Handle Add or Update Product
   const handleAddOrUpdateProduct = async (e) => {
     e.preventDefault();
-    if (!name || !price || !image) return alert("All fields are required!");
+    if (!name || !price || images.some((img) => img.trim() === "")) {
+      alert("All fields are required!");
+      return;
+    }
+
+    const productData = { name, price, images };
 
     if (editProductId) {
-      // Update existing product
       const productRef = doc(db, "products", editProductId);
-      await updateDoc(productRef, { name, price, image });
+      await updateDoc(productRef, productData);
       setEditProductId(null);
     } else {
-      // Add new product
-      await addDoc(collection(db, "products"), { name, price, image });
+      await addDoc(collection(db, "products"), productData);
     }
 
     // Clear form & Close Modal
     setName("");
     setPrice("");
-    setImage("");
+    setImages(["", "", "", "", ""]);
     setIsModalOpen(false);
   };
 
@@ -139,9 +151,9 @@ export default function Dashboard() {
                     <h2 className="text-lg font-bold">{product.name}</h2>
                     <p className="text-gray-600 text-xl">₱{product.price}</p>
                     <img
-                      src={product.image}
+                      src={product?.images[0]}
                       alt={product.name}
-                      className="w-full h-32 object-cover mt-2 rounded-lg"
+                      className="w-full h-60 object-cover mt-2 rounded-lg"
                     />
                   </div>
                   <div className="flex justify-between mt-3">
@@ -189,14 +201,19 @@ export default function Dashboard() {
                     onChange={(e) => setPrice(e.target.value)}
                     required
                   />
-                  <input
-                    type="text"
-                    placeholder="Image URL"
-                    className="input input-bordered"
-                    value={image}
-                    onChange={(e) => setImage(e.target.value)}
-                    required
-                  />
+
+                  {images.map((image, index) => (
+                    <input
+                      key={index}
+                      type="text"
+                      placeholder={`Image ${index + 1} URL`}
+                      className="input input-bordered"
+                      value={image}
+                      onChange={(e) => handleImageChange(index, e.target.value)}
+                      required
+                    />
+                  ))}
+
                   <div className="flex justify-between mt-4">
                     <button
                       type="button"
