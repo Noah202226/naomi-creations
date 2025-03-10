@@ -71,9 +71,9 @@ export default function CheckoutPage() {
         {/* Left Section - Product Details */}
         <div className="bg-white p-6 rounded-lg shadow-lg">
           <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
-          <p className="text-lg text-gray-700 mb-2">Price: {product.price}</p>
+          <p className="text-lg text-gray-700 mb-2">Price: P {product.price}</p>
           <img
-            src={product.image}
+            src={product?.images[1]}
             alt={product.name}
             className="w-full h-64 object-contain rounded-lg"
           />
